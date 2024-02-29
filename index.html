@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lector de Precios</title>
+<style>
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+    th, td {
+        border: 1px solid black;
+        padding: 8px;
+        text-align: left;
+    }
+
+    th {
+        background-color: #f2f2f2;
+    }
+</style>
+</head>
+<body>
+<h2>Lector de Precios</h2>
+<input type="text" id="barcodeInput" placeholder="Escanea el código de barras">
+<button onclick="buscarProducto()">Buscar Producto</button>
+<button onclick="exportarAExcel()">Exportar a Excel</button>
+<table id="productosTable">
+    <thead>
+        <tr>
+            <th>Código</th>
+            <th>Descripción</th>
+            <th>Cantidad</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+    function buscarProducto() {
+        const barcode = document.getElementById("barcodeInput").value;
+        cargarBaseDeDatosYBuscar(barcode);
+    }
+
+    function cargarBaseDeDatosYBuscar(barcode) {
+        fetch('Base.json')
+            .then(response => response.json())
+            .then(data => {
+                const detalle = buscarEnBaseDeDatos(data, barcode);
+                if (detalle) {
+                    agregarProductoATabla(barcode, detalle);
+                } else {
+                    const nuevoDetalle = prompt("El código de barras leído no tiene un nombre asignado. Por favor, ingrese un detalle para este producto.");
+                    if (nuevoDetalle !== null) {
+                        agregarProductoATabla(barcode, nuevoDetalle);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar la base de datos:', error);
+            });
+    }
+
+    function buscarEnBaseDeDatos(data, barcode) {
+        const producto = data.find(item => item["Codigo de barra"] === barcode);
+        return producto ? producto.Detalle : null;
+    }
+
+    function agregarProductoATabla(codigo, detalle) {
+        const tableBody = document.querySelector("#productosTable tbody");
+        const row = tableBody.insertRow();
+        const codigoCell = row.insertCell(0);
+        const descripcionCell = row.insertCell(1);
+        const cantidadCell = row.insertCell(2);
+
+        codigoCell.textContent = codigo;
+        descripcionCell.textContent = detalle;
+        cantidadCell.innerHTML = `<input type="number" value="1" min="1">`;
+    }
+
+    function exportarAExcel() {
+        const table = document.getElementById("productosTable");
+        const rows = table.querySelectorAll("tbody tr");
+
+        const data = [
+            ["Código", "Descripción", "Cantidad"]
+        ];
+
+        rows.forEach(row => {
+            const cells = row.querySelectorAll("td");
+            const rowData = [];
+            cells.forEach(cell => {
+                if (cell.querySelector("input[type=number]")) {
+                    rowData.push(cell.querySelector("input[type=number]").value);
+                } else {
+                    rowData.push(cell.textContent.trim());
+                }
+            });
+            data.push(rowData);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Productos");
+        XLSX.writeFile(wb, "productos.xlsx");
+    }
+</script>
+</body>
+</html>
