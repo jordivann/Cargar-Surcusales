@@ -5,38 +5,125 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lector de Precios</title>
 <style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f8f8f8;
+    }
+
+    #container {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+        margin-top: 0;
+    }
+
+    input[type="text"] {
+        padding: 8px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        margin-right: 10px;
+    }
+
+    button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #4caf50;
+        color: #fff;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background-color: #45a049;
+    }
+
     table {
-        border-collapse: collapse;
         width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
     }
 
     th, td {
-        border: 1px solid black;
-        padding: 8px;
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
         text-align: left;
     }
 
     th {
         background-color: #f2f2f2;
     }
+
+    td input[type="number"] {
+        padding: 8px;
+        width: 50px;
+        text-align: center;
+    }
+
+    td:last-child {
+        text-align: center;
+    }
+
+    .alert {
+        padding: 15px;
+        background-color: #f44336;
+        color: white;
+        margin-bottom: 15px;
+        display: none;
+    }
+
+    .closebtn {
+        margin-left: 15px;
+        color: white;
+        font-weight: bold;
+        float: right;
+        font-size: 22px;
+        line-height: 20px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    .closebtn:hover {
+        color: black;
+    }
 </style>
 </head>
 <body>
-<h2>Lector de Precios</h2>
-<input type="text" id="barcodeInput" placeholder="Escanea el código de barras">
-<button onclick="buscarProducto()">Buscar Producto</button>
-<button onclick="exportarAExcel()">Exportar a Excel</button>
-<table id="productosTable">
-    <thead>
-        <tr>
-            <th>Código</th>
-            <th>Descripción</th>
-            <th>Cantidad</th>
-        </tr>
-    </thead>
-    <tbody></tbody>
-</table>
 
+<div id="container">
+    <h2>Lector de Precios</h2>
+    <input type="text" id="barcodeInput" placeholder="Escanea el código de barras">
+    <button onclick="buscarProducto()">Buscar Producto</button>
+    <button onclick="descargarTablaComoExcel()">Descargar tabla como Excel</button>
+
+    <div id="alert" class="alert">
+        <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span> 
+        <strong>Error:</strong> El código de barras leído no tiene un nombre asignado.
+    </div>
+
+    <table id="productosTable">
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Descripción</th>
+                <th>Cantidad</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js"></script>
 <script>
     function buscarProducto() {
         const barcode = document.getElementById("barcodeInput").value;
@@ -48,13 +135,11 @@
             .then(response => response.json())
             .then(data => {
                 const detalle = buscarEnBaseDeDatos(data, barcode);
-                if (detalle) {
+                if (detalle !== null) {
                     agregarProductoATabla(barcode, detalle);
                 } else {
-                    const nuevoDetalle = prompt("El código de barras leído no tiene un nombre asignado. Por favor, ingrese un detalle para este producto.");
-                    if (nuevoDetalle !== null) {
-                        agregarProductoATabla(barcode, nuevoDetalle);
-                    }
+                    document.getElementById("alert").style.display = "block";
+                    agregarProductoATabla(barcode, ''); // Agrega una fila vacía para permitir la entrada del nombre del producto
                 }
             })
             .catch(error => {
@@ -75,36 +160,45 @@
         const cantidadCell = row.insertCell(2);
 
         codigoCell.textContent = codigo;
-        descripcionCell.textContent = detalle;
+        descripcionCell.innerHTML = `<input type="text" value="${detalle}" placeholder="Ingrese el nombre del producto">`;
         cantidadCell.innerHTML = `<input type="number" value="1" min="1">`;
     }
 
-    function exportarAExcel() {
-        const table = document.getElementById("productosTable");
-        const rows = table.querySelectorAll("tbody tr");
+    function descargarTablaComoExcel() {
+    const table = document.getElementById("productosTable");
+    const rows = table.querySelectorAll("tbody tr");
+    const data = [["Número de código", "Descripción", "Cantidad"]];
+    rows.forEach(row => {
+        const rowData = [];
+        const codigoCell = row.cells[0];
+        const descripcionCell = row.cells[1];
+        const cantidadCell = row.cells[2];
 
-        const data = [
-            ["Código", "Descripción", "Cantidad"]
-        ];
+        const codigo = codigoCell.textContent;
+        const descripcion = descripcionCell.querySelector("input[type=text]").value;
+        const cantidad = cantidadCell.querySelector("input[type=number]").value;
 
-        rows.forEach(row => {
-            const cells = row.querySelectorAll("td");
-            const rowData = [];
-            cells.forEach(cell => {
-                if (cell.querySelector("input[type=number]")) {
-                    rowData.push(cell.querySelector("input[type=number]").value);
-                } else {
-                    rowData.push(cell.textContent.trim());
-                }
-            });
-            data.push(rowData);
-        });
+        rowData.push(codigo);
+        rowData.push(descripcion);
+        rowData.push(cantidad);
 
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Productos");
-        XLSX.writeFile(wb, "productos.xlsx");
+        data.push(rowData);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Productos");
+    const wbout = XLSX.write(wb, {bookType:'xlsx',  type: 'binary'});
+    function s2ab(s) {
+        const buf = new ArrayBuffer(s.length);
+        const view = new Uint8Array(buf);
+        for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
+        return buf;
     }
+    saveAs(new Blob([s2ab(wbout)], { type: "application/octet-stream" }), 'productos.xlsx');
+}
+
+
 </script>
 </body>
 </html>
