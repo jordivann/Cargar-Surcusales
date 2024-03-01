@@ -126,18 +126,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js"></script>
 <script>
+    let barcodeTimer; // Variable para el temporizador del código de barras
+
     // Escucha el evento de entrada en el campo de código de barras
     document.getElementById("barcodeInput").addEventListener("input", function() {
-        const barcode = this.value;
-        if (barcode.trim() !== "") { // Verifica si el código de barras no está vacío
-            cargarBaseDeDatosYBuscar(barcode);
-            this.value = ""; // Limpia el campo después de la lectura
-        }
+        clearTimeout(barcodeTimer); // Reinicia el temporizador en cada entrada
+        barcodeTimer = setTimeout(buscarProducto, 2000); // Espera 1 segundo antes de buscar el producto
     });
 
     function buscarProducto() {
         const barcode = document.getElementById("barcodeInput").value;
-        cargarBaseDeDatosYBuscar(barcode);
+        if (barcode.trim() !== "") { // Verifica si el código de barras no está vacío
+            cargarBaseDeDatosYBuscar(barcode);
+            document.getElementById("barcodeInput").value = ""; // Limpia el campo después de la lectura
+        }
     }
 
     function cargarBaseDeDatosYBuscar(barcode) {
@@ -196,39 +198,39 @@
         row.remove(); // Eliminar la fila
     }
 
-function descargarTablaComoExcel() {
-    const table = document.getElementById("productosTable");
-    const rows = table.querySelectorAll("tbody tr");
-    const data = [["Número de código", "Descripción", "Cantidad"]];
-    rows.forEach(row => {
-        const rowData = [];
-        const codigoCell = row.cells[0];
-        const descripcionCell = row.cells[1];
-        const cantidadCell = row.cells[2];
+    function descargarTablaComoExcel() {
+        const table = document.getElementById("productosTable");
+        const rows = table.querySelectorAll("tbody tr");
+        const data = [["Número de código", "Descripción", "Cantidad"]];
+        rows.forEach(row => {
+            const rowData = [];
+            const codigoCell = row.cells[0];
+            const descripcionCell = row.cells[1];
+            const cantidadCell = row.cells[2];
 
-        const codigo = codigoCell.textContent;
-        const descripcion = descripcionCell.querySelector("input[type=text]").value;
-        const cantidad = cantidadCell.querySelector("input[type=number]").value;
+            const codigo = codigoCell.textContent;
+            const descripcion = descripcionCell.querySelector("input[type=text]").value;
+            const cantidad = cantidadCell.querySelector("input[type=number]").value;
 
-        rowData.push(codigo);
-        rowData.push(descripcion);
-        rowData.push(cantidad);
+            rowData.push(codigo);
+            rowData.push(descripcion);
+            rowData.push(cantidad);
 
-        data.push(rowData);
-    });
+            data.push(rowData);
+        });
 
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Productos");
-    const wbout = XLSX.write(wb, {bookType:'xlsx',  type: 'binary'});
-    function s2ab(s) {
-        const buf = new ArrayBuffer(s.length);
-        const view = new Uint8Array(buf);
-        for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
-        return buf;
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Productos");
+        const wbout = XLSX.write(wb, {bookType:'xlsx',  type: 'binary'});
+        function s2ab(s) {
+            const buf = new ArrayBuffer(s.length);
+            const view = new Uint8Array(buf);
+            for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
+            return buf;
+        }
+        saveAs(new Blob([s2ab(wbout)], { type: "application/octet-stream" }), 'productos.xlsx');
     }
-    saveAs(new Blob([s2ab(wbout)], { type: "application/octet-stream" }), 'productos.xlsx');
-}
 </script>
 </body>
 </html>
