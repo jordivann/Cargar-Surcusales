@@ -126,6 +126,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js"></script>
 <script>
+    // Escucha el evento de entrada en el campo de código de barras
+    document.getElementById("barcodeInput").addEventListener("input", function() {
+        const barcode = this.value;
+        if (barcode.trim() !== "") { // Verifica si el código de barras no está vacío
+            cargarBaseDeDatosYBuscar(barcode);
+            this.value = ""; // Limpia el campo después de la lectura
+        }
+    });
+
     function buscarProducto() {
         const barcode = document.getElementById("barcodeInput").value;
         cargarBaseDeDatosYBuscar(barcode);
@@ -137,7 +146,11 @@
             .then(data => {
                 const detalle = buscarEnBaseDeDatos(data, barcode);
                 if (detalle !== null) {
-                    agregarProductoATabla(barcode, detalle);
+                    if (!existeEnTabla(barcode)) { // Verifica si el producto no está en la tabla
+                        agregarProductoATabla(barcode, detalle);
+                    } else {
+                        alert("Este producto ya está en la tabla.");
+                    }
                 } else {
                     document.getElementById("alert").style.display = "block";
                     agregarProductoATabla(barcode, ''); // Agrega una fila vacía para permitir la entrada del nombre del producto
@@ -146,6 +159,17 @@
             .catch(error => {
                 console.error('Error al cargar la base de datos:', error);
             });
+    }
+
+    function existeEnTabla(barcode) {
+        const tableRows = document.querySelectorAll("#productosTable tbody tr");
+        for (let i = 0; i < tableRows.length; i++) {
+            const codigoCell = tableRows[i].cells[0];
+            if (codigoCell.textContent === barcode) {
+                return true; // El producto ya está en la tabla
+            }
+        }
+        return false;
     }
 
     function buscarEnBaseDeDatos(data, barcode) {
@@ -172,7 +196,7 @@
         row.remove(); // Eliminar la fila
     }
 
-    function descargarTablaComoExcel() {
+function descargarTablaComoExcel() {
     const table = document.getElementById("productosTable");
     const rows = table.querySelectorAll("tbody tr");
     const data = [["Número de código", "Descripción", "Cantidad"]];
