@@ -116,6 +116,7 @@
                 <th>Código</th>
                 <th>Descripción</th>
                 <th>Cantidad</th>
+                <th>Eliminar</th> <!-- Nueva columna -->
             </tr>
         </thead>
         <tbody></tbody>
@@ -158,10 +159,17 @@
         const codigoCell = row.insertCell(0);
         const descripcionCell = row.insertCell(1);
         const cantidadCell = row.insertCell(2);
+        const eliminarCell = row.insertCell(3); // Nueva celda para el botón de eliminar
 
         codigoCell.textContent = codigo;
         descripcionCell.innerHTML = `<input type="text" value="${detalle}" placeholder="Ingrese el nombre del producto">`;
         cantidadCell.innerHTML = `<input type="number" value="1" min="1">`;
+        eliminarCell.innerHTML = `<button onclick="eliminarFila(this)">X</button>`; // Botón de eliminar con función
+    }
+
+    function eliminarFila(button) {
+        const row = button.closest("tr"); // Obtener la fila actual
+        row.remove(); // Eliminar la fila
     }
 
     function descargarTablaComoExcel() {
@@ -197,8 +205,6 @@
     }
     saveAs(new Blob([s2ab(wbout)], { type: "application/octet-stream" }), 'productos.xlsx');
 }
-
-
 </script>
 </body>
 </html>
