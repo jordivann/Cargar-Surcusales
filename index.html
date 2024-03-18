@@ -9,22 +9,28 @@
         font-family: Arial, sans-serif;
         margin: 0;
         padding: 0;
-        background-color: #f8f8f8;
+        background-color: #0c7490;
     }
 
     #container {
         max-width: 800px;
         margin: 20px auto;
         padding: 20px;
-        background-color: #fff;
+        background-color: #DADADA;
         border-radius: 5px;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
 
     h2 {
-        margin-top: 0;
-    }
+    margin-top: 0;
+    text-align: center;
+    font-weight: bold;
+    font-size: 3em; /* Puedes ajustar el tamaño de la fuente según tus preferencias */
+    text-shadow: 2px 2px 4px #fff; /* Ajusta la sombra de texto según tu preferencia */
+    color: #0c7490;
+}
 
+  
     input[type="text"] {
         padding: 8px;
         font-size: 16px;
@@ -36,7 +42,7 @@
     button {
         padding: 10px 20px;
         font-size: 16px;
-        background-color: #4caf50;
+        background-color: #F9B000;
         color: #fff;
         border: none;
         border-radius: 3px;
@@ -44,7 +50,7 @@
     }
 
     button:hover {
-        background-color: #45a049;
+        background-color: #f0b429;
     }
 
     table {
@@ -100,14 +106,14 @@
 <body>
 
 <div id="container">
-    <h2>Lector de Precios</h2>
+    <h2 class="centar">DEVOLUCIONES</h2>
     <input type="text" id="barcodeInput" placeholder="Escanea el código de barras">
-    <button onclick="buscarProducto()">Buscar Producto</button>
-    <button onclick="descargarTablaComoExcel()">Descargar tabla como Excel</button>
+    <button onclick="buscarProducto()"><strong>Buscar Producto</strong></button>
+    <button onclick="descargarTablaComoExcel()"><strong>Descargar tabla como Excel</strong></button>
 
     <div id="alert" class="alert">
         <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span> 
-        <strong>Error:</strong> El código de barras leído no tiene un nombre asignado.
+        <strong>Revisar:</strong> El código de barras leído no tiene un nombre asignado.
     </div>
 
     <table id="productosTable">
@@ -123,6 +129,7 @@
     </table>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js"></script>
 <script>
@@ -135,12 +142,29 @@
     });
 
     function buscarProducto() {
-        const barcode = document.getElementById("barcodeInput").value;
-        if (barcode.trim() !== "") { // Verifica si el código de barras no está vacío
+    const barcode = document.getElementById("barcodeInput").value;
+    if (barcode.trim() !== "") { // Verifica si el código de barras no está vacío
+        if (!existeEnTabla(barcode)) { // Verifica si el producto no está en la tabla
             cargarBaseDeDatosYBuscar(barcode);
             document.getElementById("barcodeInput").value = ""; // Limpia el campo después de la lectura
+        } else {
+            // Si el producto ya existe en la tabla, muestra una alerta con SweetAlert
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Este producto ya está en la tabla.',
+                allowOutsideClick: false, // Evita que se cierre la alerta haciendo clic fuera de ella
+                confirmButtonText: 'OK'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById("barcodeInput").value = ""; // Limpia el campo de entrada
+                }
+            });
         }
     }
+}
+
+
 
     function cargarBaseDeDatosYBuscar(barcode) {
         fetch('Base.json')
@@ -151,7 +175,12 @@
                     if (!existeEnTabla(barcode)) { // Verifica si el producto no está en la tabla
                         agregarProductoATabla(barcode, detalle);
                     } else {
-                        alert("Este producto ya está en la tabla.");
+                        // Si el producto ya existe en la tabla, muestra una alerta con SweetAlert
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Oops...',
+                            text: 'Este producto ya está en la tabla.'
+                        });
                     }
                 } else {
                     document.getElementById("alert").style.display = "block";
@@ -201,7 +230,7 @@
     function descargarTablaComoExcel() {
         const table = document.getElementById("productosTable");
         const rows = table.querySelectorAll("tbody tr");
-        const data = [["Número de código", "Descripción", "Cantidad"]];
+        const data = [["Número de código", "Descripción", "Cantidad Devolver"]];
         rows.forEach(row => {
             const rowData = [];
             const codigoCell = row.cells[0];
