@@ -99,6 +99,13 @@
             text-align: center;
         }
 
+        td select {
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
         td:last-child {
             text-align: center;
         }
@@ -148,20 +155,16 @@
             background-color: #ccc;
             margin-bottom: 20px;
         }
-
-
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
-
 </head>
 <body>
 <div id="container">
     <h2 class="centar">RECLAMOS SOBRANTES</h2>
     <div class="divider"></div>
     <div id="datosGenerales">
-        
         <div class="datosInput">
             <label for="fecha">Fecha:</label>
             <input type="date" id="fecha" class="date-input">
@@ -189,6 +192,7 @@
                 <th>Código</th>
                 <th>Descripción</th>
                 <th>Cantidad</th>
+                <th>Motivo</th>
                 <th>Eliminar</th>
             </tr>
         </thead>
@@ -274,19 +278,40 @@
     }
 
     function agregarProductoATabla(codigo, detalle) {
-        const tableBody = document.querySelector("#productosTable tbody");
-        const row = tableBody.insertRow();
-        const codigoCell = row.insertCell(0);
-        const descripcionCell = row.insertCell(1);
-        const cantidadCell = row.insertCell(2);
-        const eliminarCell = row.insertCell(3); // Nueva celda para el botón de eliminar
+    const tableBody = document.querySelector("#productosTable tbody");
+    const row = tableBody.insertRow();
+    const codigoCell = row.insertCell(0);
+    const descripcionCell = row.insertCell(1);
+    const cantidadCell = row.insertCell(2);
+    const motivoCell = row.insertCell(3); // Nueva celda para el campo de motivo
+    const eliminarCell = row.insertCell(4); // Nueva celda para el botón de eliminar
 
-        codigoCell.innerHTML = codigo;
-        codigoCell.classList.add("blanco"); // Agregar clase a la celda de código
-        descripcionCell.innerHTML = `<input type="text" value="${detalle}" placeholder="Ingrese la descripción">`;
-        cantidadCell.innerHTML = `<input type="number" value="1" min="1">`;
-        eliminarCell.innerHTML = `<button onclick="eliminarFila(this)">X</button>`; // Botón de eliminar con función
+    codigoCell.innerHTML = codigo;
+    codigoCell.classList.add("blanco"); // Agregar clase a la celda de código
+    descripcionCell.innerHTML = `<input type="text" value="${detalle}" placeholder="Ingrese la descripción">`;
+    cantidadCell.innerHTML = `<input type="number" value="1" min="1">`;
+    motivoCell.innerHTML = `
+        <select onchange="mostrarCampoOtro(this)">
+            <option value="Vencido">Vencido</option>
+            <option value="SobreStock">SobreStock</option>
+            <option value="Mal Estado">Mal Estado</option>
+            <option value="Cadena de frío">Cadena de frío</option>
+            <option value="Otro">Otro</option>
+        </select>
+        <input type="text" class="otro-motivo" placeholder="Especificar motivo" style="display: none;">
+    `;
+    eliminarCell.innerHTML = `<button onclick="eliminarFila(this)">X</button>`; // Botón de eliminar con función
+}
+
+function mostrarCampoOtro(select) {
+    const otroInput = select.parentElement.querySelector('.otro-motivo');
+    if (select.value === 'Otro') {
+        otroInput.style.display = 'block';
+    } else {
+        otroInput.style.display = 'none';
+        otroInput.value = ''; // Limpiar el valor en caso de que esté visible pero se cambie a otra opción
     }
+}
 
     function eliminarFila(button) {
         const row = button.closest("tr"); // Obtener la fila actual
@@ -294,33 +319,41 @@
     }
 
     function descargarTablaComoPDF() {
-        const data = [];
-        const tableRows = document.querySelectorAll("#productosTable tbody tr");
-        tableRows.forEach(row => {
-            const rowData = [];
-            const codigoCell = row.cells[0];
-            const descripcionCell = row.cells[1];
-            const cantidadCell = row.cells[2];
-            rowData.push(codigoCell.textContent);
-            rowData.push(descripcionCell.querySelector("input[type=text]").value);
-            rowData.push(cantidadCell.querySelector("input[type=number]").value);
-            data.push(rowData);
-        });
+    const data = [];
+    const tableRows = document.querySelectorAll("#productosTable tbody tr");
+    tableRows.forEach(row => {
+        const rowData = [];
+        const codigoCell = row.cells[0];
+        const descripcionCell = row.cells[1];
+        const cantidadCell = row.cells[2];
+        const motivoCell = row.cells[3]; // Nuevo campo para el motivo
+        const motivoValue = motivoCell.querySelector("select").value;
+        const otroMotivoInput = motivoCell.querySelector(".otro-motivo"); // Obtener el campo de texto para motivo "Otro"
+        let motivoDescripcion = motivoValue;
+        if (motivoValue === "Otro") {
+            motivoDescripcion = otroMotivoInput.value; // Usar la descripción del motivo "Otro" si está seleccionado
+        }
+        rowData.push(codigoCell.textContent);
+        rowData.push(descripcionCell.querySelector("input[type=text]").value);
+        rowData.push(cantidadCell.querySelector("input[type=number]").value);
+        rowData.push(motivoDescripcion); // Agregar la descripción del motivo
+        data.push(rowData);
+    });
 
-        const doc = new jsPDF();
-        const fecha = document.getElementById("fecha").value || "Fecha no especificada";
-        const sucursal = document.getElementById("sucursal").value || "Sucursal no especificada";
+    const doc = new jsPDF();
+    const fecha = document.getElementById("fecha").value || "Fecha no especificada";
+    const sucursal = document.getElementById("sucursal").value || "Sucursal no especificada";
 
-        doc.text(`Fecha: ${fecha}`, 14, 10);
-        doc.text(`Sucursal: ${sucursal}`, 14, 20);
+    doc.text(`Fecha: ${fecha}`, 14, 10);
+    doc.text(`Sucursal: ${sucursal}`, 14, 20);
 
-        doc.autoTable({
-            startY: 30,
-            head: [['Código', 'Descripción', 'Cantidad']],
-            body: data
-        });
-        doc.save('productos.pdf');
-    }
+    doc.autoTable({
+        startY: 30,
+        head: [['Código', 'Descripción', 'Cantidad', 'Motivo']], // Agregar el encabezado para el motivo
+        body: data
+    });
+    doc.save('productos.pdf');
+}
 </script>
 </body>
 </html>
