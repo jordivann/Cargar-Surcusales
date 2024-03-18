@@ -352,8 +352,15 @@ function mostrarCampoOtro(select) {
         head: [['Código', 'Descripción', 'Cantidad', 'Motivo']], // Agregar el encabezado para el motivo
         body: data
     });
-    doc.save('productos.pdf');
+
+    // Mostrar un formulario de entrada para el nombre del archivo
+    const nombreArchivo = prompt("Ingrese el nombre del archivo (sin la extensión .pdf):");
+    if (nombreArchivo) {
+        // Guardar el PDF utilizando FileSaver.js con el nombre proporcionado
+        doc.save(`${nombreArchivo}.pdf`);
+    }
 }
+
 </script>
 </body>
 </html>
