@@ -22,15 +22,44 @@
     }
 
     h2 {
-    margin-top: 0;
-    text-align: center;
-    font-weight: bold;
-    font-size: 3em; /* Puedes ajustar el tamaño de la fuente según tus preferencias */
-    text-shadow: 2px 2px 4px #fff; /* Ajusta la sombra de texto según tu preferencia */
-    color: #0c7490;
+        margin-top: 0;
+        text-align: center;
+        font-weight: bold;
+        font-size: 3em;
+        text-shadow: 2px 2px 4px #fff;
+        color: #0c7490;
+    }
+
+    .date-input {
+    padding: 8px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    margin-right: 10px;
+    background-color: white;
+    /* Agregar sombra para resaltar */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    /* Cambiar el cursor al pasar sobre el campo */
+    cursor: pointer;
 }
 
-  
+/* Estilo para cambiar el aspecto al pasar el mouse */
+.date-input:hover {
+    border-color: #999;
+}
+
+/* Estilo para cambiar el aspecto al enfocar */
+.date-input:focus {
+    border-color: #0c7490;
+    outline: none;
+}
+
+/* Estilo para el texto dentro del campo */
+.date-input::placeholder {
+    color: #999;
+}
+
+
     input[type="text"] {
         padding: 8px;
         font-size: 16px;
@@ -101,15 +130,37 @@
     .closebtn:hover {
         color: black;
     }
+    
+    #datosGenerales {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
 </style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
+
+
 </head>
 <body>
 
 <div id="container">
-    <h2 class="centar">DEVOLUCIONES</h2>
+    <h2 class="centar">RECLAMOS SOBRANTES</h2>
+    <div id="datosGenerales">
+        <div>
+            <label for="fecha">Fecha:</label>
+            <input type="date" id="fecha" class="date-input">
+        </div>
+        <div>
+            <label for="sucursal">Sucursal:</label>
+            <input type="text" id="sucursal" placeholder="Ingrese la sucursal">
+        </div>
+    </div>
     <input type="text" id="barcodeInput" placeholder="Escanea el código de barras">
     <button onclick="buscarProducto()"><strong>Buscar Producto</strong></button>
-    <button onclick="descargarTablaComoExcel()"><strong>Descargar tabla como Excel</strong></button>
+    <button onclick="descargarTablaComoPDF()"><strong>Descargar tabla como PDF</strong></button>
 
     <div id="alert" class="alert">
         <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span> 
@@ -130,18 +181,20 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js"></script>
+
 <script>
-    let barcodeTimer; // Variable para el temporizador del código de barras
 
-    // Escucha el evento de entrada en el campo de código de barras
-    document.getElementById("barcodeInput").addEventListener("input", function() {
-        clearTimeout(barcodeTimer); // Reinicia el temporizador en cada entrada
-        barcodeTimer = setTimeout(buscarProducto, 2000); // Espera 1 segundo antes de buscar el producto
-    });
+window.jsPDF = window.jspdf.jsPDF;
+let barcodeTimer; // Variable para el temporizador del código de barras
 
-    function buscarProducto() {
+// Escucha el evento de entrada en el campo de código de barras
+document.getElementById("barcodeInput").addEventListener("input", function() {
+    clearTimeout(barcodeTimer); // Reinicia el temporizador en cada entrada
+    barcodeTimer = setTimeout(buscarProducto, 2000); // Espera 1 segundo antes de buscar el producto
+});
+
+function buscarProducto() {
     const barcode = document.getElementById("barcodeInput").value;
     if (barcode.trim() !== "") { // Verifica si el código de barras no está vacío
         if (!existeEnTabla(barcode)) { // Verifica si el producto no está en la tabla
@@ -164,102 +217,95 @@
     }
 }
 
-
-
-    function cargarBaseDeDatosYBuscar(barcode) {
-        fetch('Base.json')
-            .then(response => response.json())
-            .then(data => {
-                const detalle = buscarEnBaseDeDatos(data, barcode);
-                if (detalle !== null) {
-                    if (!existeEnTabla(barcode)) { // Verifica si el producto no está en la tabla
-                        agregarProductoATabla(barcode, detalle);
-                    } else {
-                        // Si el producto ya existe en la tabla, muestra una alerta con SweetAlert
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Oops...',
-                            text: 'Este producto ya está en la tabla.'
-                        });
-                    }
+function cargarBaseDeDatosYBuscar(barcode) {
+    fetch('Base.json')
+        .then(response => response.json())
+        .then(data => {
+            const detalle = buscarEnBaseDeDatos(data, barcode);
+            if (detalle !== null) {
+                if (!existeEnTabla(barcode)) { // Verifica si el producto no está en la tabla
+                    agregarProductoATabla(barcode, detalle);
                 } else {
-                    document.getElementById("alert").style.display = "block";
-                    agregarProductoATabla(barcode, ''); // Agrega una fila vacía para permitir la entrada del nombre del producto
+                    // Si el producto ya existe en la tabla, muestra una alerta con SweetAlert
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: 'Este producto ya está en la tabla.'
+                    });
                 }
-            })
-            .catch(error => {
-                console.error('Error al cargar la base de datos:', error);
-            });
-    }
-
-    function existeEnTabla(barcode) {
-        const tableRows = document.querySelectorAll("#productosTable tbody tr");
-        for (let i = 0; i < tableRows.length; i++) {
-            const codigoCell = tableRows[i].cells[0];
-            if (codigoCell.textContent === barcode) {
-                return true; // El producto ya está en la tabla
+            } else {
+                document.getElementById("alert").style.display = "block";
+                agregarProductoATabla(barcode, ''); // Agrega una fila vacía para permitir la entrada del nombre del producto
             }
-        }
-        return false;
-    }
-
-    function buscarEnBaseDeDatos(data, barcode) {
-        const producto = data.find(item => item["Codigo de barra"] === barcode);
-        return producto ? producto.Detalle : null;
-    }
-
-    function agregarProductoATabla(codigo, detalle) {
-        const tableBody = document.querySelector("#productosTable tbody");
-        const row = tableBody.insertRow();
-        const codigoCell = row.insertCell(0);
-        const descripcionCell = row.insertCell(1);
-        const cantidadCell = row.insertCell(2);
-        const eliminarCell = row.insertCell(3); // Nueva celda para el botón de eliminar
-
-        codigoCell.textContent = codigo;
-        descripcionCell.innerHTML = `<input type="text" value="${detalle}" placeholder="Ingrese el nombre del producto">`;
-        cantidadCell.innerHTML = `<input type="number" value="1" min="1">`;
-        eliminarCell.innerHTML = `<button onclick="eliminarFila(this)">X</button>`; // Botón de eliminar con función
-    }
-
-    function eliminarFila(button) {
-        const row = button.closest("tr"); // Obtener la fila actual
-        row.remove(); // Eliminar la fila
-    }
-
-    function descargarTablaComoExcel() {
-        const table = document.getElementById("productosTable");
-        const rows = table.querySelectorAll("tbody tr");
-        const data = [["Número de código", "Descripción", "Cantidad Devolver"]];
-        rows.forEach(row => {
-            const rowData = [];
-            const codigoCell = row.cells[0];
-            const descripcionCell = row.cells[1];
-            const cantidadCell = row.cells[2];
-
-            const codigo = codigoCell.textContent;
-            const descripcion = descripcionCell.querySelector("input[type=text]").value;
-            const cantidad = cantidadCell.querySelector("input[type=number]").value;
-
-            rowData.push(codigo);
-            rowData.push(descripcion);
-            rowData.push(cantidad);
-
-            data.push(rowData);
+        })
+        .catch(error => {
+            console.error('Error al cargar la base de datos:', error);
         });
+}
 
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Productos");
-        const wbout = XLSX.write(wb, {bookType:'xlsx',  type: 'binary'});
-        function s2ab(s) {
-            const buf = new ArrayBuffer(s.length);
-            const view = new Uint8Array(buf);
-            for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
-            return buf;
+function existeEnTabla(barcode) {
+    const tableRows = document.querySelectorAll("#productosTable tbody tr");
+    for (let i = 0; i < tableRows.length; i++) {
+        const codigoCell = tableRows[i].cells[0];
+        if (codigoCell.textContent === barcode) {
+            return true; // El producto ya está en la tabla
         }
-        saveAs(new Blob([s2ab(wbout)], { type: "application/octet-stream" }), 'productos.xlsx');
     }
+    return false;
+}
+
+function buscarEnBaseDeDatos(data, barcode) {
+    const producto = data.find(item => item["Codigo de barra"] === barcode);
+    return producto ? producto.Detalle : null;
+}
+
+function agregarProductoATabla(codigo, detalle) {
+    const tableBody = document.querySelector("#productosTable tbody");
+    const row = tableBody.insertRow();
+    const codigoCell = row.insertCell(0);
+    const descripcionCell = row.insertCell(1);
+    const cantidadCell = row.insertCell(2);
+    const eliminarCell = row.insertCell(3); // Nueva celda para el botón de eliminar
+
+    codigoCell.textContent = codigo;
+    descripcionCell.innerHTML = `<input type="text" value="${detalle}" placeholder="Ingrese la descripción">`;
+    cantidadCell.innerHTML = `<input type="number" value="1" min="1">`;
+    eliminarCell.innerHTML = `<button onclick="eliminarFila(this)">X</button>`; // Botón de eliminar con función
+}
+
+function eliminarFila(button) {
+    const row = button.closest("tr"); // Obtener la fila actual
+    row.remove(); // Eliminar la fila
+}
+
+function descargarTablaComoPDF() {
+    const data = [];
+    const tableRows = document.querySelectorAll("#productosTable tbody tr");
+    tableRows.forEach(row => {
+        const rowData = [];
+        const codigoCell = row.cells[0];
+        const descripcionCell = row.cells[1];
+        const cantidadCell = row.cells[2];
+        rowData.push(codigoCell.textContent);
+        rowData.push(descripcionCell.querySelector("input[type=text]").value);
+        rowData.push(cantidadCell.querySelector("input[type=number]").value);
+        data.push(rowData);
+    });
+
+    const doc = new jsPDF();
+    const fecha = document.getElementById("fecha").value || "Fecha no especificada";
+    const sucursal = document.getElementById("sucursal").value || "Sucursal no especificada";
+
+    doc.text(`Fecha: ${fecha}`, 14, 10);
+    doc.text(`Sucursal: ${sucursal}`, 14, 20);
+
+    doc.autoTable({
+        startY: 30,
+        head: [['Código', 'Descripción', 'Cantidad']],
+        body: data
+    });
+    doc.save('productos.pdf');
+}
 </script>
 </body>
 </html>
