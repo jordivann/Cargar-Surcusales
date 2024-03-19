@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lector de Precios</title>
+
+    <!-- Librerías JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js"></script>
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -156,9 +163,6 @@
             margin-bottom: 20px;
         }
     </style>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
 <div id="container">
@@ -174,10 +178,25 @@
             <input type="text" id="sucursal" placeholder="Ingrese la sucursal">
         </div>
     </div>
-    <div class="divider"></div>
+    
     <div>
-        <input type="text" id="barcodeInput" placeholder="Escanea el código de barras">
-        <button onclick="buscarProducto()"><strong>Buscar Producto</strong></button>
+        <div>
+            <div class="divider"></div>
+            <input type="text" id="barcodeInput" placeholder="Escanea el código de barras">
+            <button onclick="buscarProductoPorCodigo()"><strong>Buscar por Código</strong></button>
+            <br>
+            <div class="divider"></div>
+        </div>
+        <div>
+
+        </div>
+        <input type="text" id="nombreInput" list="listaNombres" placeholder="Ingrese el nombre del producto">
+        <datalist id="listaNombres"></datalist>
+        
+    
+        <button onclick="buscarPorNombre()"><strong>Buscar por Nombre</strong></button>
+        <br>
+        <div class="divider"></div>
         <button onclick="descargarTablaComoPDF()"><strong>Descargar tabla como PDF</strong></button>
     </div>
 
@@ -192,16 +211,12 @@
                 <th>Código</th>
                 <th>Descripción</th>
                 <th>Cantidad</th>
-                <th>Motivo</th>
                 <th>Eliminar</th>
             </tr>
         </thead>
         <tbody></tbody>
     </table>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js"></script>
-
 <script>
     window.jsPDF = window.jspdf.jsPDF;
     let barcodeTimer; // Variable para el temporizador del código de barras
@@ -209,10 +224,29 @@
     // Escucha el evento de entrada en el campo de código de barras
     document.getElementById("barcodeInput").addEventListener("input", function() {
         clearTimeout(barcodeTimer); // Reinicia el temporizador en cada entrada
-        barcodeTimer = setTimeout(buscarProducto, 2000); // Espera 1 segundo antes de buscar el producto
+        barcodeTimer = setTimeout(buscarProductoPorCodigo, 2000); // Espera 1 segundo antes de buscar el producto
     });
 
-    function buscarProducto() {
+    // Cargar automáticamente los nombres de productos desde Base.json al cargar la página
+    window.onload = cargarNombresProductos;
+
+    function cargarNombresProductos() {
+fetch('Base.json')
+    .then(response => response.json())
+    .then(data => {
+        const listaNombres = document.getElementById('listaNombres');
+        listaNombres.innerHTML = ''; // Limpiamos la lista de nombres
+        data.forEach(producto => {
+            const option = document.createElement('option');
+            option.value = producto.Detalle;
+            listaNombres.appendChild(option);
+        });
+    })
+    .catch(error => {
+        console.error('Error al cargar los nombres de productos:', error);
+    });
+}
+    function buscarProductoPorCodigo() {
         const barcode = document.getElementById("barcodeInput").value;
         if (barcode.trim() !== "") { // Verifica si el código de barras no está vacío
             if (!existeEnTabla(barcode)) { // Verifica si el producto no está en la tabla
@@ -220,20 +254,40 @@
                 document.getElementById("barcodeInput").value = ""; // Limpia el campo después de la lectura
             } else {
                 // Si el producto ya existe en la tabla, muestra una alerta con SweetAlert
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Oops...',
-                    text: 'Este producto ya está en la tabla.',
-                    allowOutsideClick: false, // Evita que se cierre la alerta haciendo clic fuera de ella
-                    confirmButtonText: 'OK'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        document.getElementById("barcodeInput").value = ""; // Limpia el campo de entrada
-                    }
-                });
+                mostrarAlerta("Este producto ya está en la tabla.");
             }
         }
     }
+
+    function buscarPorNombre() {
+        const nombre = document.getElementById("nombreInput").value.trim();
+        if (nombre !== "") {
+            fetch('Base.json')
+                .then(response => response.json())
+                .then(data => {
+                    const producto = buscarPorNombreEnBaseDeDatos(data, nombre);
+                    if (producto !== null) {
+                        if (!existeEnTabla(producto["Codigo de barra"])) {
+                            agregarProductoATabla(producto["Codigo de barra"], producto.Detalle);
+                            document.getElementById("nombreInput").value = ""; 
+                        } else {
+                            mostrarAlerta("Este producto ya está en la tabla.");
+                        }
+                    } else {
+                        mostrarAlerta("No se encontró ningún producto con ese nombre.");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al cargar la base de datos:', error);
+                });
+        }
+    }
+
+    function buscarPorNombreEnBaseDeDatos(data, nombre) {
+        const producto = data.find(item => item && item.Detalle && item.Detalle.toLowerCase() === nombre.toLowerCase());
+        return producto || null;
+    }
+    
 
     function cargarBaseDeDatosYBuscar(barcode) {
         fetch('Base.json')
@@ -245,11 +299,7 @@
                         agregarProductoATabla(barcode, detalle);
                     } else {
                         // Si el producto ya existe en la tabla, muestra una alerta con SweetAlert
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Oops...',
-                            text: 'Este producto ya está en la tabla.'
-                        });
+                        mostrarAlerta("Este producto ya está en la tabla.");
                     }
                 } else {
                     document.getElementById("alert").style.display = "block";
@@ -278,89 +328,74 @@
     }
 
     function agregarProductoATabla(codigo, detalle) {
-    const tableBody = document.querySelector("#productosTable tbody");
-    const row = tableBody.insertRow();
-    const codigoCell = row.insertCell(0);
-    const descripcionCell = row.insertCell(1);
-    const cantidadCell = row.insertCell(2);
-    const motivoCell = row.insertCell(3); // Nueva celda para el campo de motivo
-    const eliminarCell = row.insertCell(4); // Nueva celda para el botón de eliminar
+        const tableBody = document.querySelector("#productosTable tbody");
+        const row = tableBody.insertRow();
+        const codigoCell = row.insertCell(0);
+        const descripcionCell = row.insertCell(1);
+        const cantidadCell = row.insertCell(2);
+        const eliminarCell = row.insertCell(3); // Nueva celda para el botón de eliminar
 
-    codigoCell.innerHTML = codigo;
-    codigoCell.classList.add("blanco"); // Agregar clase a la celda de código
-    descripcionCell.innerHTML = `<input type="text" value="${detalle}" placeholder="Ingrese la descripción">`;
-    cantidadCell.innerHTML = `<input type="number" value="1" min="1">`;
-    motivoCell.innerHTML = `
-        <select onchange="mostrarCampoOtro(this)">
-            <option value="Vencido">Vencido</option>
-            <option value="SobreStock">SobreStock</option>
-            <option value="Mal Estado">Mal Estado</option>
-            <option value="Cadena de frío">Cadena de frío</option>
-            <option value="Otro">Otro</option>
-        </select>
-        <input type="text" class="otro-motivo" placeholder="Especificar motivo" style="display: none;">
-    `;
-    eliminarCell.innerHTML = `<button onclick="eliminarFila(this)">X</button>`; // Botón de eliminar con función
-}
-
-function mostrarCampoOtro(select) {
-    const otroInput = select.parentElement.querySelector('.otro-motivo');
-    if (select.value === 'Otro') {
-        otroInput.style.display = 'block';
-    } else {
-        otroInput.style.display = 'none';
-        otroInput.value = ''; // Limpiar el valor en caso de que esté visible pero se cambie a otra opción
+        codigoCell.innerHTML = codigo;
+        descripcionCell.innerHTML = `<input type="text" value="${detalle}" placeholder="Ingrese la descripción">`;
+        cantidadCell.innerHTML = `<input type="number" value="1" min="1">`;
+        eliminarCell.innerHTML = `<button onclick="eliminarFila(this)">X</button>`; // Botón de eliminar con función
     }
-}
 
     function eliminarFila(button) {
         const row = button.closest("tr"); // Obtener la fila actual
         row.remove(); // Eliminar la fila
     }
 
-    function descargarTablaComoPDF() {
-    const data = [];
-    const tableRows = document.querySelectorAll("#productosTable tbody tr");
-    tableRows.forEach(row => {
-        const rowData = [];
-        const codigoCell = row.cells[0];
-        const descripcionCell = row.cells[1];
-        const cantidadCell = row.cells[2];
-        const motivoCell = row.cells[3]; // Nuevo campo para el motivo
-        const motivoValue = motivoCell.querySelector("select").value;
-        const otroMotivoInput = motivoCell.querySelector(".otro-motivo"); // Obtener el campo de texto para motivo "Otro"
-        let motivoDescripcion = motivoValue;
-        if (motivoValue === "Otro") {
-            motivoDescripcion = otroMotivoInput.value; // Usar la descripción del motivo "Otro" si está seleccionado
-        }
-        rowData.push(codigoCell.textContent);
-        rowData.push(descripcionCell.querySelector("input[type=text]").value);
-        rowData.push(cantidadCell.querySelector("input[type=number]").value);
-        rowData.push(motivoDescripcion); // Agregar la descripción del motivo
-        data.push(rowData);
-    });
-
-    const doc = new jsPDF();
-    const fecha = document.getElementById("fecha").value || "Fecha no especificada";
-    const sucursal = document.getElementById("sucursal").value || "Sucursal no especificada";
-
-    doc.text(`Fecha: ${fecha}`, 14, 10);
-    doc.text(`Sucursal: ${sucursal}`, 14, 20);
-
-    doc.autoTable({
-        startY: 30,
-        head: [['Código', 'Descripción', 'Cantidad', 'Motivo']], // Agregar el encabezado para el motivo
-        body: data
-    });
-
-    // Mostrar un formulario de entrada para el nombre del archivo
-    const nombreArchivo = prompt("Ingrese el nombre del archivo (sin la extensión .pdf):");
-    if (nombreArchivo) {
-        // Guardar el PDF utilizando FileSaver.js con el nombre proporcionado
-        doc.save(`${nombreArchivo}.pdf`);
+    function mostrarAlerta(mensaje) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: mensaje,
+            allowOutsideClick: false, // Evita que se cierre la alerta haciendo clic fuera de ella
+            confirmButtonText: 'OK'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById("barcodeInput").value = ""; // Limpia el campo de entrada
+            }
+        });
     }
-}
 
+    function descargarTablaComoPDF() {
+        const data = [];
+        const tableRows = document.querySelectorAll("#productosTable tbody tr");
+        tableRows.forEach(row => {
+            const rowData = [];
+            const codigoCell = row.cells[0];
+            const descripcionCell = row.cells[1];
+            const cantidadCell = row.cells[2];
+            rowData.push(codigoCell.textContent);
+            
+            rowData.push(descripcionCell.querySelector("input[type=text]").value);
+            rowData.push(cantidadCell.querySelector("input[type=number]").value);
+            data.push(rowData);
+        });
+
+        const doc = new jsPDF();
+        const fecha = document.getElementById("fecha").value || "Fecha no especificada";
+        const sucursal = document.getElementById("sucursal").value || "Sucursal no especificada";
+
+        doc.text(`RECLAMOS SOBRANTES`, 14, 10);
+        doc.text(`Fecha: ${fecha}`, 14, 20);
+        doc.text(`Sucursal: ${sucursal}`, 14, 30);
+
+        doc.autoTable({
+            startY: 40,
+            head: [['Código', 'Descripción', 'Cantidad']], // Encabezado sin motivo
+            body: data
+        });
+
+        // Mostrar un formulario de entrada para el nombre del archivo
+        const nombreArchivo = prompt("Ingrese el nombre del archivo (sin la extensión .pdf):");
+        if (nombreArchivo) {
+            // Guardar el PDF utilizando FileSaver.js con el nombre proporcionado
+            doc.save(`${nombreArchivo}.pdf`);
+        }
+    }
 </script>
 </body>
 </html>
