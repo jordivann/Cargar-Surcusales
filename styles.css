@@ -1,0 +1,186 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    margin-top: 1em;
+    padding: 0;
+    background-color: #0c7490;
+
+    display:flex;
+    align-items:center;
+    justify-content: center;
+
+    height: 100vh;
+}
+
+#container {
+    max-width: 1100px;
+    min-width: 750px;
+    /* margin: 20px auto; */
+    padding: 1.5em;
+    background-color: #DADADA;
+    border-radius: 1em;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.6);
+}
+
+#container h1 {
+    /* margin-top: 0; */
+    text-align: center;
+    font-weight: bold;
+    font-size: 3em;
+    text-shadow: 2px 2px 4px #303030;
+    color: #F9B000;
+}
+#datosGenerales {
+    display: flex;
+    justify-content:space-around;
+    align-items: center;
+    padding-top: 1em;
+    padding-bottom:1em;
+}
+.date-input, #sucursal {
+    padding: 10px;
+    height:20px;
+    width:290px;
+    /* max-height: 1em; */
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 1em;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    /* margin-right: 10px; */
+    /* flex: 1;  */
+}
+
+
+
+.date-input:hover, #sucursal:hover {
+    border-color: #999;
+}
+
+.date-input:focus, #sucursal:focus {
+    border-color: #F9B000;
+    outline: none;
+}
+
+.date-input::placeholder {
+    color: #999;
+}
+
+input[type="text"] {
+    padding: 15px;
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-top-left-radius: 14px;
+    border-bottom-left-radius:14px
+    /* margin-right: 10px; */
+}
+.datosInput{
+    display: flex;
+    flex-flow: column wrap;
+}
+
+.buscadores{
+    display: flex; 
+    align-items: center;
+    justify-content: center;
+    gap:10px;
+    height:100px;
+}
+.nombreSearch,
+.barcodeSearch{
+    display: flex;
+    align-items:center;
+}
+
+#boton{
+    border-top-right-radius: 14px;
+    border-bottom-right-radius:14px;
+    padding: 15px;
+
+}
+button {
+    padding: 10px 20px;
+    font-size: 1em;
+    background-color: #F9B000;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: rgb(117, 83, 4);
+}
+.descargador{
+    width:100%;
+    display:flex;
+    justify-content: flex-end;
+}
+#linkDescarga{
+    font-style: italic; 
+    cursor:pointer;
+    padding: 8px;
+    border-radius: 0.6em;
+    margin-bottom:10px;
+}
+hr{
+    color: rgba(0, 0, 0, 0.6)
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    /* margin-top: 20px; */
+}
+
+th, td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+td input[type="number"] {
+    padding: 1em;
+    width: 50px;
+    text-align: center;
+}
+
+td select {
+    padding: 1em;
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+td:last-child {
+    text-align: center;
+}
+
+.alert {
+    padding: 1em;
+    background-color: #f44336;
+    color: white;
+    margin-bottom: 15px;
+    display: none;
+}
+
+.closebtn {
+    margin-left: 15px;
+    color: white;
+    font-weight: bold;
+    float: right;
+    font-size: 22px;
+    line-height: 20px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.closebtn:hover {
+    color: black;
+}
+
